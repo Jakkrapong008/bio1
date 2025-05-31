@@ -1,0 +1,206 @@
+import React, { useState, useEffect } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+
+// Define a set of colors for the pie chart segments
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+// Custom tooltip for the pie chart
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="p-2 bg-white border border-gray-300 rounded-lg shadow-lg text-gray-800">
+        <p className="font-bold">{`${data.name}`}</p>
+        <p>{`จำนวน: ${data.value}`}</p>
+        <p>{`ร้อยละ: ${(data.percent * 100).toFixed(2)}%`}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Main App component
+const App = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Replace with your deployed Google App Script URL
+  const googleAppScriptUrl = 'https://script.google.com/macros/s/AKfycby0R42I4nE5gZkK3UVSTm23MYoihhaO-r8FKyvNZGR88YHIJahAK8MeneoA2Ivarb1L/exec';
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(googleAppScriptUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = await response.json();
+        if (result.error) {
+          throw new Error(result.error);
+        }
+        setData(result);
+      } catch (e) {
+        console.error("Error fetching data:", e);
+        setError(`ไม่สามารถโหลดข้อมูลได้: ${e.message} 😥`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [googleAppScriptUrl]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-4">
+        <div className="text-center text-gray-700 text-xl animate-pulse">
+          กำลังโหลดข้อมูล... 🚀
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-orange-100 p-4">
+        <div className="text-center text-red-700 text-xl font-semibold">
+          เกิดข้อผิดพลาด: {error}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 font-sarabun p-4 sm:p-8">
+      {/* Header Section */}
+      <header className="text-center mb-12 animate-fade-in-down">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-indigo-800 mb-2 drop-shadow-lg">
+          สรุปผลการประเมินการจัดการเรียนการสอนโดยใช้ AI 🤖
+        </h1>
+        <p className="text-lg sm:text-xl text-gray-600">
+          โดย <span className="font-semibold">นายจักรพงศ์ จันทวงศ์</span> โรงเรียนหางดงรัฐราษฎร์อุปถัมภ์ 🏫
+        </p>
+      </header>
+
+      {/* Charts Section */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        {data && data.chartsData && Object.keys(data.chartsData).map((key, index) => (
+          <div
+            key={key}
+            className="bg-white rounded-xl shadow-xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl animate-fade-in-up"
+            style={{ animationDelay: `${index * 0.1}s` }}
+          >
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center">
+              {key} 📊
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={data.chartsData[key]}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  animationBegin={0}
+                  animationDuration={800}
+                  animationEasing="ease-out"
+                >
+                  {data.chartsData[key].map((entry, idx) => (
+                    <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        ))}
+      </section>
+
+      {/* AC Data Section */}
+      <section className="bg-white rounded-xl shadow-xl p-6 sm:p-8 mb-12 animate-fade-in-up">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 text-center">
+          ข้อเสนอแนะและข้อคิดเห็นเพิ่มเติม 📝
+        </h2>
+        {data && data.acData && data.acData.length > 0 ? (
+          <ul className="list-disc list-inside space-y-3 text-lg text-gray-700">
+            {data.acData.map((item, index) => (
+              <li key={index} className="flex items-start">
+                <span className="mr-2 text-indigo-500">👉</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-center text-gray-500 text-lg">
+            ไม่มีข้อเสนอแนะและข้อคิดเห็นเพิ่มเติมในขณะนี้ ✨
+          </p>
+        )}
+      </section>
+
+      {/* Footer */}
+      <footer className="text-center text-gray-500 text-sm mt-12">
+        <p>&copy; {new Date().getFullYear()} จัดทำโดย นายจักรพงศ์ จันทวงศ์. สงวนลิขสิทธิ์.</p>
+        <p className="mt-2">สร้างด้วย ❤️ และ AI</p>
+      </footer>
+
+      {/* Tailwind CSS Custom Animations */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+
+        body {
+          font-family: 'Sarabun', sans-serif;
+        }
+
+        @keyframes fadeInDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fade-in-down {
+          animation: fadeInDown 0.8s ease-out forwards;
+        }
+
+        .animate-fade-in-up {
+          animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: .5;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;
