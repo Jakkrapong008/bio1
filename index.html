@@ -1,206 +1,276 @@
-import React, { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-
-// Define a set of colors for the pie chart segments
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
-// Custom tooltip for the pie chart
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="p-2 bg-white border border-gray-300 rounded-lg shadow-lg text-gray-800">
-        <p className="font-bold">{`${data.name}`}</p>
-        <p>{`จำนวน: ${data.value}`}</p>
-        <p>{`ร้อยละ: ${(data.percent * 100).toFixed(2)}%`}</p>
-      </div>
-    );
-  }
-  return null;
-};
-
-// Main App component
-const App = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Replace with your deployed Google App Script URL
-  const googleAppScriptUrl = 'https://script.google.com/macros/s/AKfycby0R42I4nE5gZkK3UVSTm23MYoihhaO-r8FKyvNZGR88YHIJahAK8MeneoA2Ivarb1L/exec';
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(googleAppScriptUrl);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const result = await response.json();
-        if (result.error) {
-          throw new Error(result.error);
-        }
-        setData(result);
-      } catch (e) {
-        console.error("Error fetching data:", e);
-        setError(`ไม่สามารถโหลดข้อมูลได้: ${e.message} 😥`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [googleAppScriptUrl]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-4">
-        <div className="text-center text-gray-700 text-xl animate-pulse">
-          กำลังโหลดข้อมูล... 🚀
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-orange-100 p-4">
-        <div className="text-center text-red-700 text-xl font-semibold">
-          เกิดข้อผิดพลาด: {error}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 font-sarabun p-4 sm:p-8">
-      {/* Header Section */}
-      <header className="text-center mb-12 animate-fade-in-down">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-indigo-800 mb-2 drop-shadow-lg">
-          สรุปผลการประเมินการจัดการเรียนการสอนโดยใช้ AI 🤖
-        </h1>
-        <p className="text-lg sm:text-xl text-gray-600">
-          โดย <span className="font-semibold">นายจักรพงศ์ จันทวงศ์</span> โรงเรียนหางดงรัฐราษฎร์อุปถัมภ์ 🏫
-        </p>
-      </header>
-
-      {/* Charts Section */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-        {data && data.chartsData && Object.keys(data.chartsData).map((key, index) => (
-          <div
-            key={key}
-            className="bg-white rounded-xl shadow-xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl animate-fade-in-up"
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center">
-              {key} 📊
-            </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={data.chartsData[key]}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  animationBegin={0}
-                  animationDuration={800}
-                  animationEasing="ease-out"
-                >
-                  {data.chartsData[key].map((entry, idx) => (
-                    <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        ))}
-      </section>
-
-      {/* AC Data Section */}
-      <section className="bg-white rounded-xl shadow-xl p-6 sm:p-8 mb-12 animate-fade-in-up">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 text-center">
-          ข้อเสนอแนะและข้อคิดเห็นเพิ่มเติม 📝
-        </h2>
-        {data && data.acData && data.acData.length > 0 ? (
-          <ul className="list-disc list-inside space-y-3 text-lg text-gray-700">
-            {data.acData.map((item, index) => (
-              <li key={index} className="flex items-start">
-                <span className="mr-2 text-indigo-500">👉</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-center text-gray-500 text-lg">
-            ไม่มีข้อเสนอแนะและข้อคิดเห็นเพิ่มเติมในขณะนี้ ✨
-          </p>
-        )}
-      </section>
-
-      {/* Footer */}
-      <footer className="text-center text-gray-500 text-sm mt-12">
-        <p>&copy; {new Date().getFullYear()} จัดทำโดย นายจักรพงศ์ จันทวงศ์. สงวนลิขสิทธิ์.</p>
-        <p className="mt-2">สร้างด้วย ❤️ และ AI</p>
-      </footer>
-
-      {/* Tailwind CSS Custom Animations */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
-
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สรุปผลการประเมินการจัดการเรียนการสอนโดยใช้ AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        /* Custom styles and animations */
         body {
-          font-family: 'Sarabun', sans-serif;
+            font-family: 'Sarabun', sans-serif; /* Apply Sarabun font to the entire body */
         }
 
         @keyframes fadeInDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .animate-fade-in-down {
-          animation: fadeInDown 0.8s ease-out forwards;
+            animation: fadeInDown 0.8s ease-out forwards;
         }
 
         .animate-fade-in-up {
-          animation: fadeInUp 0.8s ease-out forwards;
+            animation: fadeInUp 0.8s ease-out forwards;
         }
 
         .animate-pulse {
-          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
         @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: .5;
-          }
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
         }
-      `}</style>
-    </div>
-  );
-};
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-8">
 
-export default App;
+    <div id="loading-message" class="hidden flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-4 absolute inset-0 z-10">
+        <div class="text-center text-gray-700 text-xl animate-pulse">
+            กำลังโหลดข้อมูล... 🚀
+        </div>
+    </div>
+    <div id="error-message" class="hidden flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-orange-100 p-4 absolute inset-0 z-10">
+        <div class="text-center text-red-700 text-xl font-semibold">
+            </div>
+    </div>
+
+    <div id="main-content" class="hidden">
+        <header class="text-center mb-12 animate-fade-in-down">
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-indigo-800 mb-2 drop-shadow-lg">
+                สรุปผลการประเมินการจัดการเรียนการสอนโดยใช้ AI 🤖
+            </h1>
+            <p class="text-lg sm:text-xl text-gray-600">
+                โดย <span class="font-semibold">นายจักรพงศ์ จันทวงศ์</span> โรงเรียนหางดงรัฐราษฎร์อุปถัมภ์ 🏫
+            </p>
+        </header>
+
+        <section id="charts-section" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12"></section>
+
+        <section class="bg-white rounded-xl shadow-xl p-6 sm:p-8 mb-12 animate-fade-in-up">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 text-center">
+                ข้อเสนอแนะและข้อคิดเห็นเพิ่มเติม 📝
+            </h2>
+            <ul id="ac-data-list" class="list-disc list-inside space-y-3 text-lg text-gray-700">
+                </ul>
+            <p id="ac-data-empty-message" class="hidden text-center text-gray-500 text-lg">
+                ไม่มีข้อเสนอแนะและข้อคิดเห็นเพิ่มเติมในขณะนี้ ✨
+            </p>
+        </section>
+
+        <footer class="text-center text-gray-500 text-sm mt-12">
+            <p>&copy; <span id="current-year"></span> จัดทำโดย นายจักรพงศ์ จันทวงศ์. สงวนลิขสิทธิ์.</p>
+            <p class="mt-2">สร้างด้วย ❤️ และ AI</p>
+        </footer>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const loadingMessage = document.getElementById('loading-message');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = errorMessage.querySelector('div');
+        const mainContent = document.getElementById('main-content');
+        const chartsSection = document.getElementById('charts-section');
+        const acDataList = document.getElementById('ac-data-list');
+        const acDataEmptyMessage = document.getElementById('ac-data-empty-message');
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        // Define a set of colors for the pie chart segments (Chart.js uses rgba for transparency)
+        const CHART_COLORS = [
+            'rgba(136, 132, 216, 0.8)', // #8884d8
+            'rgba(130, 202, 157, 0.8)', // #82ca9d
+            'rgba(255, 198, 88, 0.8)',  // #ffc658
+            'rgba(255, 115, 0, 0.8)',   // #ff7300
+            'rgba(0, 136, 254, 0.8)',   // #0088FE
+            'rgba(0, 196, 159, 0.8)',   // #00C49F
+            'rgba(255, 187, 40, 0.8)',  // #FFBB28
+            'rgba(255, 128, 66, 0.8)'   // #FF8042
+        ];
+        const BORDER_COLORS = [
+            'rgb(136, 132, 216)',
+            'rgb(130, 202, 157)',
+            'rgb(255, 198, 88)',
+            'rgb(255, 115, 0)',
+            'rgb(0, 136, 254)',
+            'rgb(0, 196, 159)',
+            'rgb(255, 187, 40)',
+            'rgb(255, 128, 66)'
+        ];
+
+
+        // Function to fetch data from Google App Script
+        async function fetchData() {
+            loadingMessage.classList.remove('hidden'); // Show loading message
+            mainContent.classList.add('hidden'); // Hide main content
+            errorMessage.classList.add('hidden'); // Hide error message
+
+            // Replace with your deployed Google App Script URL
+            const googleAppScriptUrl = 'https://script.google.com/macros/s/AKfycby0R42I4nE5gZkK3UVSTm23MYoihhaO-r8FKyvNZGR88YHIJahAK8MeneoA2Ivarb1L/exec';
+
+            try {
+                const response = await fetch(googleAppScriptUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                renderContent(result);
+            } catch (e) {
+                console.error("Error fetching data:", e);
+                errorText.textContent = `ไม่สามารถโหลดข้อมูลได้: ${e.message} 😥`;
+                errorMessage.classList.remove('hidden'); // Show error message
+                mainContent.classList.add('hidden'); // Ensure main content is hidden
+            } finally {
+                loadingMessage.classList.add('hidden'); // Hide loading message
+            }
+        }
+
+        // Function to render all content after data is fetched
+        function renderContent(data) {
+            renderCharts(data.chartsData);
+            renderAcData(data.acData);
+            mainContent.classList.remove('hidden'); // Show main content
+        }
+
+        // Function to render pie charts
+        function renderCharts(chartsData) {
+            chartsSection.innerHTML = ''; // Clear existing charts
+            if (!chartsData || Object.keys(chartsData).length === 0) {
+                chartsSection.innerHTML = '<p class="text-center text-gray-500 text-lg col-span-full">ไม่มีข้อมูลแผนภูมิที่จะแสดง 😥</p>';
+                return;
+            }
+
+            let animationDelay = 0;
+            for (const key in chartsData) {
+                const chartContainer = document.createElement('div');
+                chartContainer.className = `bg-white rounded-xl shadow-xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl animate-fade-in-up`;
+                chartContainer.style.animationDelay = `${animationDelay}s`;
+                animationDelay += 0.1;
+
+                const chartTitle = document.createElement('h2');
+                chartTitle.className = "text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center";
+                chartTitle.textContent = `${key} 📊`;
+                chartContainer.appendChild(chartTitle);
+
+                // Create a wrapper div to control the canvas height
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.className = 'relative h-80'; // Fixed height using Tailwind CSS
+                chartContainer.appendChild(canvasWrapper);
+
+                const canvas = document.createElement('canvas');
+                canvas.id = `chart-${key.replace(/\s+/g, '-')}`; // Unique ID for each canvas
+                // Ensure canvas takes full width and height of its wrapper
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvasWrapper.appendChild(canvas); // Append canvas to the new wrapper
+
+                chartsSection.appendChild(chartContainer);
+
+                // Prepare data for Chart.js
+                const labels = chartsData[key].map(item => item.name);
+                const values = chartsData[key].map(item => item.value);
+
+                new Chart(canvas, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: CHART_COLORS.slice(0, labels.length),
+                            borderColor: BORDER_COLORS.slice(0, labels.length),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false, // This is key for Chart.js to fill the parent's dimensions
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += context.parsed;
+                                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                            const percentage = (context.parsed / total * 100).toFixed(2);
+                                            label += ` (${percentage}%)`;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 800, // Animation duration in milliseconds
+                            easing: 'easeOutQuart' // Easing function
+                        }
+                    }
+                });
+            }
+        }
+
+        // Function to render AC data
+        function renderAcData(acData) {
+            acDataList.innerHTML = ''; // Clear existing list items
+            if (acData && acData.length > 0) {
+                acData.forEach((item, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.className = "flex items-start";
+                    listItem.innerHTML = `<span class="mr-2 text-indigo-500">👉</span><span>${item}</span>`;
+                    acDataList.appendChild(listItem);
+                });
+                acDataList.classList.remove('hidden');
+                acDataEmptyMessage.classList.add('hidden');
+            } else {
+                acDataList.classList.add('hidden');
+                acDataEmptyMessage.classList.remove('hidden');
+            }
+        }
+
+        // Fetch data when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', fetchData);
+    </script>
+</body>
+</html>
